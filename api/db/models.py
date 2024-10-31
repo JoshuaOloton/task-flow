@@ -22,7 +22,7 @@ class Task(Base):
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
     dueDate = Column(Date, nullable=False)
-    status = Column(Enum(TaskStatus), default=TaskStatus.todo, nullable=False)
+    status = Column(Enum(TaskStatus), default=TaskStatus.pending, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

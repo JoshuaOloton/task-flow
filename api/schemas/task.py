@@ -24,4 +24,4 @@ class TaskResponse(BaseModel):
     dueDate: date
     status: TaskStatus
 
-    user: User
+    user: Optional[User] = None
