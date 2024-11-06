@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
-from datetime import datetime, date
+from datetime import date
 from api.enums.task import PriorityLevel, TaskStatus
 from uuid import UUID
 from .shared import User
