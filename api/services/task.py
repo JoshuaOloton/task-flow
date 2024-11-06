@@ -7,7 +7,13 @@ from fastapi import HTTPException, status
 class TaskService:
     @staticmethod
     def get_task_by_id(db: Session, task_id: str):
-        return db.query(Task).get(task_id)
+        task = db.query(Task).get(task_id)
+        if not task:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f'Task with id {task_id} not found.'
+            )
+        return task
     
     @staticmethod
     def get_all_tasks(db: Session):
