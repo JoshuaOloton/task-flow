@@ -2,6 +2,7 @@ from api.db.models import Task, User
 from sqlalchemy.orm import Session
 from api.schemas.task import TaskBase
 from fastapi import HTTPException, status
+from datetime import date
 
 
 class TaskService:
@@ -21,6 +22,12 @@ class TaskService:
     
     @staticmethod
     def create(db: Session, schema: TaskBase, current_user: User | None = None):
+        # confirm date is not in the past
+        if schema.dueDate < date.today():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Due date cannot be in the past.'
+            )
 
         task = Task(
             title=schema.title,
@@ -76,6 +83,13 @@ class TaskService:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='You are not authorized to update this task.'
+            )
+        
+        # confirm date is not in the past
+        if schema.dueDate < date.today():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Due date cannot be in the past.'
             )
         
         task.update(schema.model_dump())
