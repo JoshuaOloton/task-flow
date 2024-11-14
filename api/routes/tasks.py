@@ -1,18 +1,25 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List
 from api.db.database import get_db
 from api.db.models import User
 from api.services.auth import AuthService
 from api.services.task import TaskService
-from api.schemas.task import TaskResponse, TaskBase
+from api.schemas.task import TaskResponse, TaskBase, PaginatedTaskResponse
 
 task_router = APIRouter(prefix='/tasks', tags=['Task'])
 
-# GET /tasks
-@task_router.get("/", response_model=List[TaskResponse])
-def get_tasks(db: Session = Depends(get_db)):
-    return TaskService.get_all_tasks(db)
+# # GET /tasks
+# @task_router.get("/", response_model=List[TaskResponse])
+# def get_tasks(db: Session = Depends(get_db)):
+#     tasks = TaskService.get_all_tasks(db)
+    
+#     return tasks
+
+# GET /tasks with pagination
+@task_router.get("/", response_model=PaginatedTaskResponse)
+def get_tasks_paginated(skip: int = Query(0, ge=0), limit: int = Query(10, ge=0, le=100), db: Session = Depends(get_db)):
+    return TaskService.get_tasks_paginated(db, skip=skip, limit=limit)
 
 
 # GET /tasks/{task_id}

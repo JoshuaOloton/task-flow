@@ -23,3 +23,10 @@ class TaskResponse(BaseModel):
     status: TaskStatus
 
     user: Optional[User] = None
+
+
+class PaginatedTaskResponse(BaseModel):
+    total: int
+    skip: int
+    limit: int
+    tasks: List[TaskResponse]

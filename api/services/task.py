@@ -1,4 +1,5 @@
 from api.db.models import Task, User
+from api.schemas.task import PaginatedTaskResponse
 from sqlalchemy.orm import Session
 from api.schemas.task import TaskBase
 from fastapi import HTTPException, status
@@ -19,6 +20,19 @@ class TaskService:
     @staticmethod
     def get_all_tasks(db: Session):
         return db.query(Task).all()
+
+    @staticmethod
+    def get_tasks_paginated(db: Session, skip: int, limit: int):
+        total_tasks = db.query(Task).count()    # Get the total number of tasks
+        tasks = db.query(Task).offset(skip).limit(limit).all()
+
+        return PaginatedTaskResponse(
+            total=total_tasks,
+            skip=skip,
+            limit=limit,
+            tasks=tasks
+        )
+
     
     @staticmethod
     def create(db: Session, schema: TaskBase, current_user: User | None = None):
