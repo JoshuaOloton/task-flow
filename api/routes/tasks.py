@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
 from api.db.database import get_db
+from api.db.models import User
+from api.services.auth import AuthService
 from api.services.task import TaskService
 from api.schemas.task import TaskResponse, TaskBase
 
@@ -21,18 +23,23 @@ def get_task(task_id: str, db: Session = Depends(get_db)):
 
 # POST /tasks
 @task_router.post("/", response_model=TaskResponse)
-def create_task(task: TaskBase, db: Session = Depends(get_db)):
-    task = TaskService.create(db, task)
+def create_task(task: TaskBase, db: Session = Depends(get_db), current_user: User = Depends(AuthService.get_current_user)):
+    task = TaskService.create(db, task, current_user)
     return task
 
 
 # DELETE /tasks/{task_id}
 @task_router.delete("/{task_id}")
-def delete_task(task_id: str, db: Session = Depends(get_db)):
-    return TaskService.delete(db, task_id)
+def delete_task(task_id: str, db: Session = Depends(get_db), current_user: User = Depends(AuthService.get_current_user)):
+    return TaskService.delete(db, task_id, current_user)
 
 
 # PUT /tasks/{task_id}
 @task_router.put("/{task_id}")
-def update_task(task_id: str, task: TaskBase, db: Session = Depends(get_db)):
-    return TaskService.update(db, task_id, task)
+def update_task(
+    task_id: str,
+    task: TaskBase, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(AuthService.get_current_user)
+):
+    return TaskService.update(db, task_id, task, current_user)

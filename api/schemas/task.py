@@ -11,8 +11,6 @@ class TaskBase(BaseModel):
     dueDate: date
     status: TaskStatus
     priority: Optional[PriorityLevel] = None
-    created_by: Optional[UUID] = None
-    assigned_to: Optional[str] = None
     tags: Optional[List[str]] = []
 
 
