@@ -20,7 +20,7 @@ class TaskService:
         return db.query(Task).all()
     
     @staticmethod
-    def create(db: Session, schema: TaskBase, current_user: User):
+    def create(db: Session, schema: TaskBase, current_user: User | None = None):
 
         task = Task(
             title=schema.title,
@@ -39,23 +39,28 @@ class TaskService:
     
     @staticmethod
     def delete(db: Session, task_id: str, current_user: User):
-        task = db.query(Task).get(task_id)
-        if not task:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f'Task with id {task_id} not found.'
-            )
-        
-        # check if current user id matches task user id
-        if task.created_by != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='You are not authorized to delete this task.'
-            )
+        try:
+            task = db.query(Task).get(task_id)
+            if not task:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f'Task with id {task_id} not found.'
+                )
+            
+            # check if current user id matches task user id
+            if task.created_by and task.created_by != current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail='You are not authorized to delete this task.'
+                )
 
-        db.delete(task)
-        db.commit()
-        return 'OK'
+            db.delete(task)
+            db.commit()
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail='An error occurred while deleting the task.'
+            )
 
     @staticmethod
     def update(db: Session, task_id: str, schema: TaskBase, current_user: User):
@@ -67,7 +72,7 @@ class TaskService:
             )
         
         # check if current user id matches task user id
-        if task.first().created_by != current_user.id:
+        if task.first().created_by and task.first().created_by  != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='You are not authorized to update this task.'
@@ -75,4 +80,4 @@ class TaskService:
         
         task.update(schema.model_dump())
         db.commit()
-        return 'OK'
+        return task.first()

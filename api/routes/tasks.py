@@ -31,11 +31,15 @@ def create_task(task: TaskBase, db: Session = Depends(get_db), current_user: Use
 # DELETE /tasks/{task_id}
 @task_router.delete("/{task_id}")
 def delete_task(task_id: str, db: Session = Depends(get_db), current_user: User = Depends(AuthService.get_current_user)):
-    return TaskService.delete(db, task_id, current_user)
+    
+    TaskService.delete(db, task_id, current_user)
+    return {
+        "message": "Task deleted successfully."
+    }
 
 
 # PUT /tasks/{task_id}
-@task_router.put("/{task_id}")
+@task_router.put("/{task_id}", response_model=TaskResponse)
 def update_task(
     task_id: str,
     task: TaskBase, 

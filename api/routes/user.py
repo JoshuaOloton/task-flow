@@ -4,7 +4,7 @@ from typing import List
 from api.db.database import get_db
 from api.db.models import User
 from api.services.auth import AuthService
-from api.schemas.user import UserResponse, LoginBase, RegisterBase, LoginResponse
+from api.schemas.user import UserResponse, LoginBase, RegisterBase, LoginResponse, UserAuth
 
 user_router = APIRouter(prefix='/users', tags=['User'])
 
@@ -25,8 +25,10 @@ def login_user(user: LoginBase, db: Session = Depends(get_db)):
     return LoginResponse (
         access_token=token,
         token_type="bearer",
-        email=user.email,
-        username=user.username
+        user={
+            "email": user.email,
+            "username": user.username
+        }
     )
 
 # GET /users/me
