@@ -80,8 +80,8 @@ class TaskService:
 
         try:
             # fetch tasks from cache
-            cache_key = f'tasks:skip:{skip}:limit:{limit}:status:{status_query or 'None'}:priority:{priority or 'None'}'
-            count_cache_key = f'total_tasks:status:{status_query or 'None'}:priority:{priority or 'None'}'
+            cache_key = f'tasks:skip:{skip}:limit:{limit}:status:{status_query or "None"}:priority:{priority or "None"}'
+            count_cache_key = f'total_tasks:status:{status_query or "None"}:priority:{priority or "None"}'
 
             tasks = redis_cache.get(cache_key)
             total_tasks = redis_cache.get(count_cache_key)
