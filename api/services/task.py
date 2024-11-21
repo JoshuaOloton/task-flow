@@ -63,18 +63,6 @@ class TaskService:
             )
 
 
-    # @staticmethod
-    # def get_all_tasks(db: Session):
-    #     # fetch tasks from cache
-    #     tasks = redis_cache.get('tasks')
-    #     if tasks:
-    #         return json.loads(tasks)
-                              
-    #     tasks = db.query(Task).all()
-    #     # cache tasks
-    #     redis_cache.setex('tasks', REDIS_TTL, json.dumps([task.to_dict() for task in tasks]))
-    #     return tasks
-
     @staticmethod
     def get_tasks_paginated(db: Session, skip: int, limit: int, status_query: str = None, priority: str = None):
 
@@ -150,14 +138,6 @@ class TaskService:
 
             redis_cache.setex(f'task:{task.id}', REDIS_SHORT_TTL, json.dumps(task.to_dict()))
 
-            # # increment cache total tasks
-            # if not redis_cache.get('total_tasks'):
-            #     total = db.query(Task).count()
-            #     redis_cache.setex('total_tasks', REDIS_MEDIUM_TTL, total)
-            # else:
-            #     redis_cache.incr('total_tasks')
-
-            # invalidate all task pagination cache
             TaskService.invalidate_task_pagination_cache()
 
             return task
@@ -199,15 +179,9 @@ class TaskService:
             db.delete(task)
             db.commit()
 
-            # delete from cache and decrement total tasks
+            # delete from cache 
             redis_cache.delete(f'task:{task_id}')
-            # if not redis_cache.get('total_tasks'):
-            #     total = db.query(Task).count()
-            #     redis_cache.setex('total_tasks', REDIS_MEDIUM_TTL, total)
-            # else:
-            #     redis_cache.decr('total_tasks')
 
-            # invalidate all task pagination cache
             TaskService.invalidate_task_pagination_cache()
 
         except SQLAlchemyError as e:

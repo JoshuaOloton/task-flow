@@ -10,12 +10,6 @@ from api.schemas.task import TaskResponse, TaskBase, PaginatedTaskResponse
 
 task_router = APIRouter(prefix='/tasks', tags=['Task'])
 
-# # GET /tasks
-# @task_router.get("/", response_model=List[TaskResponse])
-# def get_tasks(db: Session = Depends(get_db)):
-#     tasks = TaskService.get_all_tasks(db)
-    
-#     return tasks
 
 # GET /tasks with pagination
 @task_router.get("/", response_model=PaginatedTaskResponse)
