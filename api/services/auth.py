@@ -35,9 +35,7 @@ class AuthService:
             expires = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
         to_encode.update({"exp": expires, "type": "access"})
-        print('to encode ', to_encode)
         encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=ALGORITHM)
-        print('JWT: ', encoded_jwt)
 
         return encoded_jwt
     

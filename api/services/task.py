@@ -22,7 +22,13 @@ class TaskService:
     def invalidate_task_pagination_cache():
         # invalidate all task pagination cache
         print('Invalidating task pagination cache...')
-        for key in redis_cache.scan_iter('tasks:*:*'):
+        cache_key = 'tasks:skip:*:limit:*:status:*:priority:*'
+        count_cache_key = 'total_tasks:status:*:priority:*'
+
+        for key in redis_cache.scan_iter(cache_key):
+            redis_cache.delete(key)
+
+        for key in redis_cache.scan_iter(count_cache_key):
             redis_cache.delete(key)
 
     @staticmethod
@@ -70,12 +76,15 @@ class TaskService:
     #     return tasks
 
     @staticmethod
-    def get_tasks_paginated(db: Session, skip: int, limit: int):
+    def get_tasks_paginated(db: Session, skip: int, limit: int, status_query: str = None, priority: str = None):
 
         try:
             # fetch tasks from cache
-            tasks = redis_cache.get(f'tasks:{skip}:{limit}')
-            total_tasks = redis_cache.get('total_tasks')
+            cache_key = f'tasks:skip:{skip}:limit:{limit}:status:{status_query or 'None'}:priority:{priority or 'None'}'
+            count_cache_key = f'total_tasks:status:{status_query or 'None'}:priority:{priority or 'None'}'
+
+            tasks = redis_cache.get(cache_key)
+            total_tasks = redis_cache.get(count_cache_key)
             
             if tasks and total_tasks:
                 tasks = json.loads(tasks)
@@ -83,12 +92,23 @@ class TaskService:
                 print('Task cache hit')
             else:
                 print('Task cache miss, fetching from db...')
-                tasks = db.query(Task).offset(skip).limit(limit).all()
-                total_tasks = db.query(Task).count()  # Get the total number of tasks
+
+                tasks = db.query(Task)
+
+                # filter tasks by status and priority
+                if status_query:
+                    tasks = tasks.filter(Task.status == status_query)
+                if priority:
+                    tasks = tasks.filter(Task.priority == priority)
+
+                 # Get the total number of tasks
+                total_tasks = tasks.count() 
+
+                tasks = tasks.offset(skip).limit(limit).all()
 
                 # cache tasks and total_tasks
-                redis_cache.setex(f'tasks:{skip}:{limit}', REDIS_SHORT_TTL, json.dumps([task.to_dict() for task in tasks]))
-                redis_cache.setex('total_tasks', REDIS_MEDIUM_TTL, total_tasks)
+                redis_cache.setex(cache_key, REDIS_SHORT_TTL, json.dumps([task.to_dict() for task in tasks]))
+                redis_cache.setex(count_cache_key, REDIS_MEDIUM_TTL, total_tasks)
 
             return PaginatedTaskResponse(
                 total=total_tasks,
@@ -130,12 +150,12 @@ class TaskService:
 
             redis_cache.setex(f'task:{task.id}', REDIS_SHORT_TTL, json.dumps(task.to_dict()))
 
-            # increment cache total tasks
-            if not redis_cache.get('total_tasks'):
-                total = db.query(Task).count()
-                redis_cache.setex('total_tasks', REDIS_MEDIUM_TTL, total)
-            else:
-                redis_cache.incr('total_tasks')
+            # # increment cache total tasks
+            # if not redis_cache.get('total_tasks'):
+            #     total = db.query(Task).count()
+            #     redis_cache.setex('total_tasks', REDIS_MEDIUM_TTL, total)
+            # else:
+            #     redis_cache.incr('total_tasks')
 
             # invalidate all task pagination cache
             TaskService.invalidate_task_pagination_cache()
@@ -152,7 +172,7 @@ class TaskService:
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail='An unexpected error occurred while creating the task.'
+                detail=f'An unexpected error occurred while creating the task: {str(e)}'
             )
         
     
@@ -181,11 +201,11 @@ class TaskService:
 
             # delete from cache and decrement total tasks
             redis_cache.delete(f'task:{task_id}')
-            if not redis_cache.get('total_tasks'):
-                total = db.query(Task).count()
-                redis_cache.setex('total_tasks', REDIS_MEDIUM_TTL, total)
-            else:
-                redis_cache.decr('total_tasks')
+            # if not redis_cache.get('total_tasks'):
+            #     total = db.query(Task).count()
+            #     redis_cache.setex('total_tasks', REDIS_MEDIUM_TTL, total)
+            # else:
+            #     redis_cache.decr('total_tasks')
 
             # invalidate all task pagination cache
             TaskService.invalidate_task_pagination_cache()
@@ -197,11 +217,6 @@ class TaskService:
                 detail='An error occurred while deleting the task.'
             )
 
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail='An unexpected error occurred while deleting the task.'
-            )
 
     @staticmethod
     def update(db: Session, task_id: str, schema: TaskBase, current_user: User):
@@ -246,10 +261,4 @@ class TaskService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail='An error occurred while updating the task.'
-            )
-        
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail='An unexpected error occurred while updating the task.'
             )

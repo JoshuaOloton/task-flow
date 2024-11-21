@@ -19,8 +19,15 @@ task_router = APIRouter(prefix='/tasks', tags=['Task'])
 
 # GET /tasks with pagination
 @task_router.get("/", response_model=PaginatedTaskResponse)
-def get_tasks_paginated(skip: int = Query(0, ge=0), limit: int = Query(10, ge=0, le=100), db: Session = Depends(get_db)):
-    return TaskService.get_tasks_paginated(db, skip=skip, limit=limit)
+def get_tasks_paginated(
+    skip: int = Query(0, ge=0), 
+    limit: int = Query(10, ge=0, le=100), 
+    status: str = Query(None),
+    priority: str = Query(None),
+    db: Session = Depends(get_db)
+):
+    
+    return TaskService.get_tasks_paginated(db, skip=skip, limit=limit, status_query=status, priority=priority)
 
 
 # GET /tasks/{task_id}
