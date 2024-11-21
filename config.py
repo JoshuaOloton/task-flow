@@ -12,5 +12,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = config("ALGORITHM")
     JWT_SECRET_KEY: str = config("JWT_SECRET_KEY")
     JWT_REFRESH_SECRET_KEY: str = config("JWT_REFRESH_SECRET_KEY")
+    REDIS_HOST: str = config("REDIS_HOST")
+    REDIS_PORT: int = config("REDIS_PORT", cast=int)
+    REDIS_SHORT_TTL: int = config("REDIS_SHORT_TTL", cast=int)
+    REDIS_MEDIUM_TTL: int = config("REDIS_MEDIUM_TTL", cast=int)
 
 settings = Settings()

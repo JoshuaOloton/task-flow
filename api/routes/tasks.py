@@ -7,6 +7,7 @@ from api.services.auth import AuthService
 from api.services.task import TaskService
 from api.schemas.task import TaskResponse, TaskBase, PaginatedTaskResponse
 
+
 task_router = APIRouter(prefix='/tasks', tags=['Task'])
 
 # # GET /tasks

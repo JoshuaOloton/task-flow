@@ -15,6 +15,14 @@ class User(Base):
     password = Column(String)
     tasks = relationship("Task", back_populates="user")
 
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "email": self.email,
+            "username": self.username,
+            "password": self.password
+        }
+
 
 class Task(Base):
     __tablename__ = "tasks"
@@ -34,3 +42,17 @@ class Task(Base):
     tags = Column(ARRAY(String), nullable=True)
 
     user = relationship("User", back_populates="tasks")
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "title": self.title,
+            "description": self.description,
+            "dueDate": self.dueDate.isoformat(),
+            "status": self.status,
+            "priority": self.priority,
+            "created_by": str(self.created_by),
+            "assigned_to": self.assigned_to,
+            "tags": self.tags,
+            "user": self.user.to_dict() if self.user else None,
+        }

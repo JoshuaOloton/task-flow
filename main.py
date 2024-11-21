@@ -4,12 +4,12 @@ from fastapi.responses import JSONResponse
 
 from api.db.database import engine
 from api.db.models import Base
-from api.routes.user import user_router
-from api.routes.tasks import task_router
+from api.routes import api_version_one
+
 
 app = FastAPI()
-app.include_router(task_router)
-app.include_router(user_router)
+
+app.include_router(api_version_one)
 
 @app.get('/')
 def index():
