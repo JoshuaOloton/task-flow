@@ -3,6 +3,7 @@ from api.schemas.task import PaginatedTaskResponse
 from api.schemas.task import TaskBase
 from cache import redis_cache
 from config import settings
+from utils.validators import is_valid_uuid
 
 import json
 from datetime import date
@@ -34,8 +35,14 @@ class TaskService:
 
     @staticmethod
     def get_task_by_id(db: Session, task_id: str, current_user: User):
-        # trim task_id
+        # validate task_id
         task_id = task_id.strip()
+        
+        if not is_valid_uuid(task_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Invalid task id. Task id must be a valid UUID.'
+            )
 
         # fetch task from cache
         task = redis_cache.get(f'task:{task_id}')
@@ -159,8 +166,14 @@ class TaskService:
     
     @staticmethod
     def delete(db: Session, task_id: str, current_user: User):
-        # trim task_id
+        # validate task_id
         task_id = task_id.strip()
+
+        if not is_valid_uuid(task_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Invalid task id. Task id must be a valid UUID.'
+            )
 
         try:
             task = db.query(Task).get(task_id)
@@ -195,8 +208,14 @@ class TaskService:
 
     @staticmethod
     def update(db: Session, task_id: str, schema: TaskBase, current_user: User):
-        # trim task_id
+        # validate task_id
         task_id = task_id.strip()
+
+        if not is_valid_uuid(task_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Invalid task id. Task id must be a valid UUID.'
+            )
 
         try:
             task = db.query(Task).filter(Task.id == task_id)
