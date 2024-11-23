@@ -59,8 +59,3 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 Base.metadata.create_all(engine)
-
-if __name__ == "__main__":
-    # Get the port from environment variable or use default (e.g., 8000)
-    port = int(os.getenv("PORT", 8000))  # Default to 8000 if PORT is not set
-    uvicorn.run(app, host="0.0.0.0", port=port)

@@ -4,9 +4,10 @@ from api.schemas.task import TaskBase
 from cache import redis_cache
 from config import settings
 
+import json
 from datetime import date
 from fastapi import HTTPException, status
-import json
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -32,44 +33,44 @@ class TaskService:
             redis_cache.delete(key)
 
     @staticmethod
-    def get_task_by_id(db: Session, task_id: str):
+    def get_task_by_id(db: Session, task_id: str, current_user: User):
         # trim task_id
         task_id = task_id.strip()
 
-        try:
-            # fetch task from cache
-            task = redis_cache.get(f'task:{task_id}')
-            if task:
-                print('Task cache hit')
-                return json.loads(task)
+        # fetch task from cache
+        task = redis_cache.get(f'task:{task_id}')
+        if task:
+            print('Task cache hit')
+            return json.loads(task)
 
-            print('Task cache miss, fetching from db...')
-            task = db.query(Task).get(task_id)
-            if not task:
-                print('Task not found')
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f'Task with id {task_id} not found.'
-                )
-            
-            # cache task
-            redis_cache.setex(f'task:{task_id}', REDIS_SHORT_TTL, json.dumps(task.to_dict()))
-            return task
-        
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail='An error occurred while fetching the task.'
+        print('Task cache miss, fetching from db...')
+
+        task = db.query(Task).filter(
+            and_(
+                Task.id == task_id,
+                Task.created_by == current_user.id
             )
+        ).first()
+
+        if not task:
+            print('Task not found')
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f'Task with id {task_id} not found.'
+            )
+        
+        # cache task
+        redis_cache.setex(f'task:{task_id}', REDIS_SHORT_TTL, json.dumps(task.to_dict()))
+        return task
 
 
     @staticmethod
-    def get_tasks_paginated(db: Session, skip: int, limit: int, status_query: str = None, priority: str = None):
+    def get_tasks_paginated(db: Session, current_user: User, skip: int, limit: int, status_query: str = None, priority: str = None):
 
         try:
             # fetch tasks from cache
-            cache_key = f'tasks:skip:{skip}:limit:{limit}:status:{status_query or "None"}:priority:{priority or "None"}'
-            count_cache_key = f'total_tasks:status:{status_query or "None"}:priority:{priority or "None"}'
+            cache_key = f'tasks:{current_user.id}:skip:{skip}:limit:{limit}:status:{status_query or "None"}:priority:{priority or "None"}'
+            count_cache_key = f'total_tasks:{current_user.id}:status:{status_query or "None"}:priority:{priority or "None"}'
 
             tasks = redis_cache.get(cache_key)
             total_tasks = redis_cache.get(count_cache_key)
@@ -81,7 +82,7 @@ class TaskService:
             else:
                 print('Task cache miss, fetching from db...')
 
-                tasks = db.query(Task)
+                tasks = db.query(Task).filter(Task.created_by == current_user.id)
 
                 # filter tasks by status and priority
                 if status_query:
@@ -108,12 +109,12 @@ class TaskService:
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail='An error occurred while fetching tasks.'
+                detail=f'An error occurred while fetching tasks: {str(e)}'
             )
 
     
     @staticmethod
-    def create(db: Session, schema: TaskBase, current_user: User | None = None):
+    def create(db: Session, schema: TaskBase, current_user: User):
         # confirm date is not in the past
         if schema.dueDate < date.today():
             raise HTTPException(

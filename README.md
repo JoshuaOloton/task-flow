@@ -8,15 +8,29 @@ TaskMaster is a scalable RESTful API for a task management system, designed to h
 
 ```git clone https://github.com/JoshuaOloton/task-master.git```
 
-### 2. Install Dependencies (use virtual environment)
+### 2. Create Virtual Environment
+```
+python -m venv venv
+
+source venv/bin/activate  # On Windows, use `venv\Scripts\activate
+```
+
+### 3. Install Dependencies
 
 ```pip install -r requirements.txt```
 
 
-### ...
+### 4. Configure Environment Variables
 
 
 ### 5. Start the Server
 
-```fastapi dev main.py```
+```uvicorn main:app --reload```
+
+
+## Configuration
+
+- #### Database Connection String
+- #### JWT Secret Key
+- #### Authentication Settings
 

@@ -8,11 +8,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy.orm import Session
-from utils.email import is_valid_email
+from utils.validators import is_valid_email, is_valid_password
 from utils.hash import PasswordHasher
 from typing import Annotated
 import jwt
-import re
 
 
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
@@ -90,18 +89,12 @@ class AuthService:
         
         user = db.query(User).filter(User.email == email).first()
 
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f'User with email {email} not found.'
-            )
-        
-        if not PasswordHasher.verify_password(user.password, password):
+        if not user or not PasswordHasher.verify_password(user.password, password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Incorrect password.'
+                detail='Incorrect credentials.'
             )
-        
+    
         return user
 
     @staticmethod
@@ -119,6 +112,12 @@ class AuthService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f'User with email {schema.email} already exists.'
+            )
+        
+        if not is_valid_password(schema.password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.'
             )
         
         user = User(
