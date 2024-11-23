@@ -37,7 +37,7 @@ class TaskService:
     def get_task_by_id(db: Session, task_id: str, current_user: User):
         # validate task_id
         task_id = task_id.strip()
-        
+
         if not is_valid_uuid(task_id):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -45,7 +45,7 @@ class TaskService:
             )
 
         # fetch task from cache
-        task = redis_cache.get(f'task:{task_id}')
+        task = redis_cache.get(f'task:{current_user.id}:{task_id}')
         if task:
             print('Task cache hit')
             return json.loads(task)
@@ -67,7 +67,7 @@ class TaskService:
             )
         
         # cache task
-        redis_cache.setex(f'task:{task_id}', REDIS_SHORT_TTL, json.dumps(task.to_dict()))
+        redis_cache.setex(f'task:{current_user.id}:{task_id}', REDIS_SHORT_TTL, json.dumps(task.to_dict()))
         return task
 
 
