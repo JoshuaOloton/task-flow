@@ -15,7 +15,6 @@ from sqlalchemy.exc import SQLAlchemyError
 
 
 REDIS_SHORT_TTL = settings.REDIS_SHORT_TTL
-REDIS_MEDIUM_TTL = settings.REDIS_MEDIUM_TTL
 
 
 class TaskService:
@@ -24,8 +23,8 @@ class TaskService:
     def invalidate_task_pagination_cache():
         # invalidate all task pagination cache
         print('Invalidating task pagination cache...')
-        cache_key = 'tasks:skip:*:limit:*:status:*:priority:*'
-        count_cache_key = 'total_tasks:status:*:priority:*'
+        cache_key = 'tasks:*:skip:*:limit:*:status:*:priority:*'
+        count_cache_key = 'total_tasks:*:status:*:priority:*'
 
         for key in redis_cache.scan_iter(cache_key):
             redis_cache.delete(key)
@@ -104,7 +103,7 @@ class TaskService:
 
                 # cache tasks and total_tasks
                 redis_cache.setex(cache_key, REDIS_SHORT_TTL, json.dumps([task.to_dict() for task in tasks]))
-                redis_cache.setex(count_cache_key, REDIS_MEDIUM_TTL, total_tasks)
+                redis_cache.setex(count_cache_key, REDIS_SHORT_TTL, total_tasks)
 
             return PaginatedTaskResponse(
                 total=total_tasks,
