@@ -276,6 +276,13 @@ class TaskService:
                     detail=f'Task with id {task_id} not found.'
                 )
             
+            # ensure at least one field is provided in request body and update only provided task fields
+            if not any([value for key, value in schema.model_dump().items() if value]):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail='At least one field is required to update the task.'
+                )
+            
             # check if current user id matches task user id
             if task.first().created_by and task.first().created_by  != current_user.id:
                 raise HTTPException(
@@ -284,21 +291,15 @@ class TaskService:
                 )
             
             # confirm date is not in the past
-            if schema.dueDate < date.today():
+            if schema.dueDate and schema.dueDate < date.today():
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail='Due date cannot be in the past.'
                 )
-            
-            # ensure at least one field is provided in request body and update only provided task fields
-            if not any([value for key, value in schema.model_dump().items() if value]):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail='At least one field is required to update the task.'
-                )
 
             for key, value in schema.model_dump().items():
-                setattr(task.first(), key, value)
+                if value:
+                    setattr(task.first(), key, value)
 
             # update cache
             redis_cache.setex(f'task:{current_user.id}:{task_id}', REDIS_SHORT_TTL, json.dumps(task.first().to_dict()))
