@@ -4,7 +4,7 @@ from typing import List
 from api.db.database import get_db
 from api.db.models import User
 from api.services.auth import AuthService
-from api.schemas.user import UserResponse, LoginBase, RegisterBase, LoginResponse, UserAuth
+from api.schemas.user import UserResponse, LoginBase, RegisterBase, LoginResponse
 
 user_router = APIRouter(prefix='/users', tags=['User'])
 

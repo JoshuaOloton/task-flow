@@ -43,5 +43,4 @@ class UserResponse(BaseModel):
 
     email: str
     username: str
-    password: str
     tasks: List[Task] = []
