@@ -5,7 +5,7 @@ from api.db.database import get_db
 from api.db.models import User
 from api.services.auth import AuthService
 from api.services.task import TaskService
-from api.schemas.task import TaskResponse, TaskBase, PaginatedTaskResponse
+from api.schemas.task import TaskResponse, TaskBase, PaginatedTaskResponse, PatchTaskBase
 
 
 task_router = APIRouter(prefix='/tasks', tags=['Task'])
@@ -56,4 +56,15 @@ def update_task(
     db: Session = Depends(get_db), 
     current_user: User = Depends(AuthService.get_current_user)
 ):
-    return TaskService.update(db, task_id, task, current_user)
+    return TaskService.put_update(db, task_id, task, current_user)
+
+
+# PATCH /tasks/{task_id}
+@task_router.patch("/{task_id}", response_model=TaskResponse)
+def patch_update_task(
+    task_id: str,
+    task: PatchTaskBase, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(AuthService.get_current_user)
+):
+    return TaskService.patch_update(db, task_id, task, current_user)

@@ -143,7 +143,7 @@ class TaskService:
             db.commit()
             db.refresh(task)
 
-            redis_cache.setex(f'task:{task.id}', REDIS_SHORT_TTL, json.dumps(task.to_dict()))
+            redis_cache.setex(f'task:{current_user.id}:{task.id}', REDIS_SHORT_TTL, json.dumps(task.to_dict()))
 
             TaskService.invalidate_task_pagination_cache()
 
@@ -193,7 +193,7 @@ class TaskService:
             db.commit()
 
             # delete from cache 
-            redis_cache.delete(f'task:{task_id}')
+            redis_cache.delete(f'task:{current_user.id}:{task_id}')
 
             TaskService.invalidate_task_pagination_cache()
 
@@ -206,7 +206,7 @@ class TaskService:
 
 
     @staticmethod
-    def update(db: Session, task_id: str, schema: TaskBase, current_user: User):
+    def put_update(db: Session, task_id: str, schema: TaskBase, current_user: User):
         # validate task_id
         task_id = task_id.strip()
 
@@ -241,7 +241,67 @@ class TaskService:
             task.update(schema.model_dump())
 
             # update cache
-            redis_cache.setex(f'task:{task_id}', REDIS_SHORT_TTL, json.dumps(task.first().to_dict()))
+            redis_cache.setex(f'task:{current_user.id}:{task_id}', REDIS_SHORT_TTL, json.dumps(task.first().to_dict()))
+
+            # invalidate all task pagination cache
+            TaskService.invalidate_task_pagination_cache()
+
+            db.commit()
+            return task.first()
+        
+        except SQLAlchemyError as e:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail='An error occurred while updating the task.'
+            )
+        
+
+    @staticmethod
+    def patch_update(db: Session, task_id: str, schema: TaskBase, current_user: User):
+        # validate task_id
+        task_id = task_id.strip()
+
+        if not is_valid_uuid(task_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Invalid task id. Task id must be a valid UUID.'
+            )
+
+        try:
+            task = db.query(Task).filter(Task.id == task_id)
+            if not task.first():
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f'Task with id {task_id} not found.'
+                )
+            
+            # check if current user id matches task user id
+            if task.first().created_by and task.first().created_by  != current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail='You are not authorized to update this task.'
+                )
+            
+            # confirm date is not in the past
+            if schema.dueDate < date.today():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail='Due date cannot be in the past.'
+                )
+            
+            # ensure at least one field is provided in request body and update only provided task fields
+            if not any([value for key, value in schema.model_dump().items() if value]):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail='At least one field is required to update the task.'
+                )
+
+            for key, value in schema.model_dump().items():
+                setattr(task.first(), key, value)
+
+            # update cache
+            redis_cache.setex(f'task:{current_user.id}:{task_id}', REDIS_SHORT_TTL, json.dumps(task.first().to_dict()))
 
             # invalidate all task pagination cache
             TaskService.invalidate_task_pagination_cache()

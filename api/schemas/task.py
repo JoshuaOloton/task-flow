@@ -14,6 +14,15 @@ class TaskBase(BaseModel):
     tags: Optional[List[str]] = []
 
 
+class PatchTaskBase(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    dueDate: Optional[date] = None
+    status: Optional[TaskStatus] = None
+    priority: Optional[PriorityLevel] = None
+    tags: Optional[List[str]] = None
+
+
 class TaskResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
